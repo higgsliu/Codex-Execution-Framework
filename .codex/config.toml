@@ -1,0 +1,21 @@
+# Codex Execution Framework
+# Primary model is intentionally NOT pinned here.
+# The current model and reasoning effort selected by the user in Codex remain the Primary.
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 6
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+
+[features]
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+
+# unified_exec is stable, but currently disabled by default on Windows.
+# Windows users should benchmark before enabling it manually:
+# unified_exec = true
+
+# Fast-tier availability is intentionally not forced on or off here.
+# This framework recommends standard mode by default when Token/credit efficiency matters.
