@@ -66,7 +66,8 @@ if ($null -ne $codex) {
 if ($null -ne $git) {
     $repoRootOutput = (& git -C $resolvedRoot rev-parse --show-toplevel 2>$null) -join ''
     $repoPass = ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($repoRootOutput))
-    Add-Check 'GIT_REPOSITORY' $repoPass $(if ($repoPass) { $repoRootOutput } else { 'ProjectRoot is not inside a Git repository' })
+    $repoDetail = if ($repoPass) { $repoRootOutput } else { 'ProjectRoot is not inside a Git repository' }
+    Add-Check 'GIT_REPOSITORY' $repoPass $repoDetail
 }
 
 $configPath = Join-Path $resolvedRoot '.codex/config.toml'
@@ -107,16 +108,21 @@ foreach ($agentCheck in $agentChecks) {
     }
 
     $agentText = Get-Content -LiteralPath $agentPath -Raw
+    $namePattern = '(?m)^\s*name\s*=\s*"' + [regex]::Escape($agentCheck.ExpectedName) + '"\s*$'
+    $sandboxPattern = '(?m)^\s*sandbox_mode\s*=\s*"' + [regex]::Escape($agentCheck.Sandbox) + '"\s*$'
+
     $ok = $true
-    $ok = $ok -and (Test-Regex $agentText ("(?m)^\s*name\s*=\s*\"" + [regex]::Escape($agentCheck.ExpectedName) + "\"\s*$"))
+    $ok = $ok -and (Test-Regex $agentText $namePattern)
     $ok = $ok -and (Test-Regex $agentText '(?m)^\s*model\s*=\s*"gpt-5\.6-luna"\s*$')
     $ok = $ok -and (Test-Regex $agentText '(?m)^\s*model_reasoning_effort\s*=\s*"max"\s*$')
-    $ok = $ok -and (Test-Regex $agentText ("(?m)^\s*sandbox_mode\s*=\s*\"" + [regex]::Escape($agentCheck.Sandbox) + "\"\s*$"))
+    $ok = $ok -and (Test-Regex $agentText $sandboxPattern)
     Add-Check $agentCheck.Name $ok "$($agentCheck.ExpectedName), sandbox=$($agentCheck.Sandbox)"
 }
 
 $agentsInstructions = Join-Path $resolvedRoot 'AGENTS.md'
-Add-Check 'AGENTS_MD' (Test-Path -LiteralPath $agentsInstructions) $(if (Test-Path -LiteralPath $agentsInstructions) { $agentsInstructions } else { 'AGENTS.md missing' })
+$agentsExists = Test-Path -LiteralPath $agentsInstructions
+$agentsDetail = if ($agentsExists) { $agentsInstructions } else { 'AGENTS.md missing' }
+Add-Check 'AGENTS_MD' $agentsExists $agentsDetail
 
 if ($LiveProbe) {
     if ($null -eq $codex) {
